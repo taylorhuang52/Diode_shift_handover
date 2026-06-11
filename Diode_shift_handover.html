@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>機台交接班紀錄｜CP &amp; ULLD</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/tabler-icons.min.css">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#F7F8FA;
+    --surface:#FFFFFF;
+    --border:#E2E5EA;
+    --border-strong:#C8CDD6;
+    --text:#1A1D23;
+    --text-muted:#6B7280;
+    --text-hint:#9CA3AF;
+    --blue:#1D6FD8;
+    --blue-bg:#EBF3FD;
+    --green:#2E7D32;
+    --green-bg:#EDF7EE;
+    --amber:#B45309;
+    --amber-bg:#FEF3C7;
+    --red:#B91C1C;
+    --red-bg:#FEE2E2;
+    --radius:10px;
+    --radius-sm:7px;
+  }
+  body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC',sans-serif;color:var(--text);font-size:14px;line-height:1.6;min-height:100vh}
+  
+  .page{max-width:720px;margin:0 auto;padding:32px 20px 60px}
+  
+  /* Header */
+  .header{margin-bottom:28px}
+  .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .header-title{display:flex;align-items:center;gap:10px}
+  .header-icon{width:36px;height:36px;background:#1A1D23;border-radius:8px;display:flex;align-items:center;justify-content:center}
+  .header-icon i{color:#fff;font-size:18px}
+  h1{font-size:18px;font-weight:600;letter-spacing:-.01em}
+  .header-date{font-size:13px;color:var(--text-muted)}
+  .header-sub{font-size:13px;color:var(--text-muted);padding-left:46px}
+
+  /* Shift selector */
+  .shift-row{display:flex;gap:8px;margin-bottom:24px}
+  .shift-btn{flex:1;padding:10px 0;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:500;background:var(--surface);color:var(--text-muted);cursor:pointer;transition:all .15s;text-align:center}
+  .shift-btn:hover{border-color:var(--border-strong);color:var(--text)}
+  .shift-btn.active{background:#1A1D23;border-color:#1A1D23;color:#fff}
+
+  /* Section labels */
+  .section-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px}
+
+  /* Cleanroom card */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+  .card-title{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+  .card-title i{font-size:16px;color:var(--text-muted)}
+
+  /* Two-col grid for env */
+  .env-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+  /* Field */
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:12px;font-weight:500;color:var(--text-muted)}
+  .input-wrap{position:relative;display:flex;align-items:center}
+  .input-wrap input,.input-wrap select,.field textarea{
+    width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+    font-size:14px;color:var(--text);background:var(--surface);
+    transition:border-color .15s,box-shadow .15s;font-family:inherit
+  }
+  .input-wrap input:focus,.input-wrap select:focus,.field textarea:focus{
+    outline:none;border-color:#1D6FD8;box-shadow:0 0 0 3px rgba(29,111,216,.1)
+  }
+  .input-wrap.has-unit input{padding-right:44px}
+  .unit{position:absolute;right:12px;font-size:13px;color:var(--text-muted);pointer-events:none;font-weight:500}
+  select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px!important}
+
+  /* Machine list */
+  .machine-list{display:flex;flex-direction:column;gap:10px}
+  .machine-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+  .machine-row-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .machine-id{display:flex;align-items:center;gap:8px}
+  .machine-tag{background:#1A1D23;color:#fff;font-size:12px;font-weight:600;padding:3px 10px;border-radius:5px;letter-spacing:.04em}
+  .machine-tag.ulld{background:#1D4ED8;}
+  .machine-name{font-size:13px;color:var(--text-muted)}
+  .machine-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+  /* Status badge */
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500}
+  .badge-run{background:var(--green-bg);color:var(--green)}
+  .badge-idle{background:var(--amber-bg);color:var(--amber)}
+  .badge-fault{background:var(--red-bg);color:var(--red)}
+  .badge-off{background:#F3F4F6;color:#6B7280}
+  .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+  .dot-run{background:var(--green)}
+  .dot-idle{background:var(--amber)}
+  .dot-fault{background:var(--red)}
+  .dot-off{background:#9CA3AF}
+
+  /* Fault panel */
+  .fault-panel{margin-top:12px;padding:14px;background:var(--red-bg);border-radius:var(--radius-sm);border:1px solid #FECACA;display:none;flex-direction:column;gap:10px}
+  .fault-panel.show{display:flex}
+  .fault-panel-title{font-size:12px;font-weight:600;color:var(--red);display:flex;align-items:center;gap:6px}
+  .fault-panel .field label{color:#991B1B}
+  .fault-panel input,.fault-panel select,.fault-panel textarea{background:#fff!important;border-color:#FECACA!important}
+  .fault-panel input:focus,.fault-panel select:focus,.fault-panel textarea:focus{border-color:var(--red)!important;box-shadow:0 0 0 3px rgba(185,28,28,.1)!important}
+  .fault-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  
+  /* Radio */
+  .radio-group{display:flex;gap:12px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff}
+  .radio-opt{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text)}
+  .radio-opt input[type=radio]{accent-color:var(--red);width:14px;height:14px}
+
+  /* Alert */
+  .alert{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:14px;font-size:13px}
+  .alert i{font-size:16px;flex-shrink:0;margin-top:1px}
+  .alert-red{background:var(--red-bg);color:var(--red);border:1px solid #FECACA}
+  .alert-amber{background:var(--amber-bg);color:var(--amber);border:1px solid #FDE68A}
+  .alert-blue{background:var(--blue-bg);color:var(--blue);border:1px solid #BFDBFE}
+
+  /* Operator */
+  .operator-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px}
+  .operator-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+  /* Submit */
+  .submit-area{text-align:center}
+  .btn-submit{display:inline-flex;align-items:center;gap:8px;padding:13px 40px;background:#1A1D23;color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:600;cursor:pointer;transition:all .15s;letter-spacing:.01em}
+  .btn-submit:hover{background:#2D3139;transform:translateY(-1px)}
+  .btn-submit:active{transform:translateY(0)}
+  .btn-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .submit-hint{font-size:12px;color:var(--text-hint);margin-top:8px}
+
+  /* Toast */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1A1D23;color:#fff;padding:12px 24px;border-radius:var(--radius);font-size:14px;font-weight:500;transition:transform .3s ease;z-index:999;display:flex;align-items:center;gap:8px;white-space:nowrap}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.error{background:var(--red)}
+  
+  /* Success overlay */
+  .success-msg{display:none;text-align:center;padding:40px 20px}
+  .success-msg.show{display:block}
+  .success-icon{width:60px;height:60px;background:var(--green-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+  .success-icon i{font-size:28px;color:var(--green)}
+  .success-msg h2{font-size:20px;font-weight:600;margin-bottom:8px}
+  .success-msg p{font-size:14px;color:var(--text-muted)}
+  .btn-reset{margin-top:20px;padding:10px 28px;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);font-size:14px;font-weight:500;cursor:pointer}
+
+  /* Spinner */
+  .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  
+  /* GAS URL notice */
+  .config-notice{background:var(--amber-bg);border:1px solid #FDE68A;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:20px;font-size:13px;color:var(--amber);display:flex;align-items:flex-start;gap:8px}
+  .config-notice i{font-size:16px;flex-shrink:0;margin-top:1px}
+  .config-notice code{background:rgba(180,83,9,.12);padding:1px 6px;border-radius:4px;font-size:12px;font-family:monospace}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div class="header-title">
+        <div class="header-icon"><i class="ti ti-cpu"></i></div>
+        <h1>機台交接班紀錄</h1>
+      </div>
+      <span class="header-date" id="now-date"></span>
+    </div>
+    <div class="header-sub">CP1 · CP2 · CP3 · ULLD Strip Test &nbsp;｜&nbsp; 無塵室統一填報</div>
+  </div>
+
+  <!-- Main form / success swap -->
+  <div id="form-area">
+
+    <!-- GAS Config notice -->
+    <div class="config-notice" id="config-notice">
+      <i class="ti ti-settings"></i>
+      <div>請將 Google Apps Script 部署網址填入程式碼中的 <code>https://script.google.com/macros/s/AKfycbxPt8xU8RxiUR6TvCS2X460lim9vV3HYgmHX3_LzoCD-Kg8IebFPKzPYBEdUekuRYgl8g/exec</code> 變數，才能寫入 Google Sheets。<a href="#" onclick="document.getElementById('config-notice').style.display='none';return false" style="color:inherit;text-decoration:underline;margin-left:8px">知道了</a></div>
+    </div>
+
+    <!-- Alert zone -->
+    <div id="alert-zone"></div>
+
+    <!-- Shift select -->
+    <p class="section-label">班別</p>
+    <div class="shift-row" style="margin-bottom:24px">
+      <button class="shift-btn active" onclick="setShift(this,'早班')">🌅 早班</button>
+      <button class="shift-btn" onclick="setShift(this,'中班')">☀️ 中班</button>
+      <button class="shift-btn" onclick="setShift(this,'晚班')">🌙 晚班</button>
+    </div>
+
+    <!-- Cleanroom env (single record for all 3 machines) -->
+    <p class="section-label">無塵室環境（三台共用）</p>
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-title">
+        <i class="ti ti-temperature"></i>
+        環境溫溼度
+      </div>
+      <div class="env-grid">
+        <div class="field">
+          <label>溫度</label>
+          <div class="input-wrap has-unit">
+            <input type="number" id="env-temp" placeholder="例：23.0" step="0.1" min="0" max="60">
+            <span class="unit">°C</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>濕度</label>
+          <div class="input-wrap has-unit">
+            <input type="number" id="env-hum" placeholder="例：55" step="1" min="0" max="100">
+            <span class="unit">%RH</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CP Machines -->
+    <p class="section-label">Circuit Probing — CP1 · CP2 · CP3</p>
+    <div class="machine-list" id="machine-list"></div>
+
+    <div style="margin:24px 0 0"></div>
+
+    <!-- ULLD Machine -->
+    <p class="section-label" style="margin-top:20px">Strip Test — ULLD</p>
+    <div class="machine-list" id="ulld-list"></div>
+
+    <div style="margin:24px 0 16px"></div>
+
+    <!-- Operator -->
+    <p class="section-label">填報資訊</p>
+    <div class="operator-card">
+      <div class="operator-grid">
+        <div class="field">
+          <label>填報人</label>
+          <div class="input-wrap">
+            <input type="text" id="operator" placeholder="姓名">
+          </div>
+        </div>
+        <div class="field">
+          <label>填報時間</label>
+          <div class="input-wrap">
+            <input type="time" id="report-time">
+          </div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label>備註 / 交接事項</label>
+        <textarea id="general-note" rows="2" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;resize:vertical" placeholder="其他需要交接的事項（選填）"></textarea>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="submit-area">
+      <button class="btn-submit" id="submit-btn" onclick="submitForm()">
+        <i class="ti ti-send"></i> 送出交接班紀錄
+      </button>
+      <div class="submit-hint">送出後將寫入 Google Sheets，無法修改</div>
+    </div>
+
+  </div><!-- /form-area -->
+
+  <!-- Success screen -->
+  <div class="success-msg" id="success-area">
+    <div class="success-icon"><i class="ti ti-check"></i></div>
+    <h2>交接班紀錄已送出</h2>
+    <p id="success-detail"></p>
+    <button class="btn-reset" onclick="resetForm()">填寫下一班</button>
+  </div>
+
+</div><!-- /page -->
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 設定區 =====
+// 請將 Google Apps Script 部署後的 Web App URL 貼在這裡
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxPt8xU8RxiUR6TvCS2X460lim9vV3HYgmHX3_LzoCD-Kg8IebFPKzPYBEdUekuRYgl8g/exec';
+// ==================
+
+const MACHINES = ['CP1','CP2','CP3'];
+const MACHINE_NAMES = { CP1:'Circuit Probing', CP2:'Circuit Probing', CP3:'Circuit Probing', ULLD:'Strip Test' };
+const ULLD_MACHINES = ['ULLD'];
+const ALL_MACHINES = [...MACHINES, ...ULLD_MACHINES];
+let currentShift = '早班';
+const machineState = {};
+ALL_MACHINES.forEach(id => {
+  machineState[id] = { status: 'run', reported: '', repairTime: '', assignee: '', faultDesc: '', note: '' };
+});
+
+// Clock
+function updateDate() {
+  const d = new Date();
+  const s = d.toLocaleDateString('zh-TW', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
+  document.getElementById('now-date').textContent = s;
+}
+updateDate();
+
+// Default report time to now
+(function(){
+  const t = new Date();
+  const hh = String(t.getHours()).padStart(2,'0');
+  const mm = String(t.getMinutes()).padStart(2,'0');
+  document.getElementById('report-time').value = hh + ':' + mm;
+})();
+
+function setShift(el, s) {
+  document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  currentShift = s;
+}
+
+function statusLabel(s) {
+  if (s === 'run')   return { text:'正常運作', cls:'badge-run',  dot:'dot-run' };
+  if (s === 'idle')  return { text:'閒置中',   cls:'badge-idle', dot:'dot-idle' };
+  if (s === 'fault') return { text:'故障異常', cls:'badge-fault',dot:'dot-fault' };
+  return { text:'已關機', cls:'badge-off', dot:'dot-off' };
+}
+
+function buildMachineCard(id) {
+    const d = machineState[id];
+    const sl = statusLabel(d.status);
+    const isFault = d.status === 'fault';
+    const isUlld = ULLD_MACHINES.includes(id);
+    const el = document.createElement('div');
+    el.className = 'machine-row';
+    el.innerHTML = `
+      <div class="machine-row-header">
+        <div class="machine-id">
+          <span class="machine-tag${isUlld?' ulld':''}">${id}</span>
+          <span class="machine-name">${MACHINE_NAMES[id]||''}</span>
+        </div>
+        <span class="badge ${sl.cls}"><span class="dot ${sl.dot}"></span>${sl.text}</span>
+      </div>
+      <div class="machine-fields">
+        <div class="field">
+          <label>機台狀態</label>
+          <div class="input-wrap">
+            <select onchange="updateStatus('${id}', this.value)">
+              <option value="run"   ${d.status==='run'   ?'selected':''}>✓ 正常運作</option>
+              <option value="idle"  ${d.status==='idle'  ?'selected':''}>⏸ 閒置中</option>
+              <option value="fault" ${d.status==='fault' ?'selected':''}>⚠ 故障異常</option>
+              <option value="off"   ${d.status==='off'   ?'selected':''}>◯ 已關機</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>備註</label>
+          <div class="input-wrap">
+            <input type="text" placeholder="本台交接備註（選填）" value="${d.note||''}" oninput="machineState['${id}'].note=this.value">
+          </div>
+        </div>
+      </div>
+      <div class="fault-panel ${isFault?'show':''}" id="fault-${id}">
+        <div class="fault-panel-title"><i class="ti ti-alert-triangle"></i>異常通報資訊</div>
+        <div class="fault-grid">
+          <div class="field">
+            <label>是否已通報維修</label>
+            <div class="radio-group">
+              <label class="radio-opt"><input type="radio" name="rep-${id}" value="是" ${d.reported==='是'?'checked':''} onchange="machineState['${id}'].reported=this.value"> 已通報</label>
+              <label class="radio-opt"><input type="radio" name="rep-${id}" value="否" ${d.reported==='否'?'checked':''} onchange="machineState['${id}'].reported=this.value"> 未通報</label>
+            </div>
+          </div>
+          <div class="field">
+            <label>維修開始時間</label>
+            <div class="input-wrap">
+              <input type="time" value="${d.repairTime||''}" oninput="machineState['${id}'].repairTime=this.value">
+            </div>
+          </div>
+          <div class="field">
+            <label>通報對象 / 負責人</label>
+            <div class="input-wrap">
+              <input type="text" placeholder="姓名或部門" value="${d.assignee||''}" oninput="machineState['${id}'].assignee=this.value">
+            </div>
+          </div>
+          <div class="field">
+            <label>異常描述</label>
+            <div class="input-wrap">
+              <input type="text" placeholder="簡述異常現象" value="${d.faultDesc||''}" oninput="machineState['${id}'].faultDesc=this.value">
+            </div>
+          </div>
+        </div>
+      </div>`;
+    return el;
+}
+
+function renderMachines() {
+  const c = document.getElementById('machine-list');
+  c.innerHTML = '';
+  MACHINES.forEach(id => c.appendChild(buildMachineCard(id)));
+  const u = document.getElementById('ulld-list');
+  u.innerHTML = '';
+  ULLD_MACHINES.forEach(id => u.appendChild(buildMachineCard(id)));
+  refreshAlerts();
+}
+
+function updateStatus(id, val) {
+  machineState[id].status = val;
+  if (val !== 'fault') {
+    machineState[id].reported = '';
+    machineState[id].repairTime = '';
+  }
+  renderMachines();
+}
+
+function refreshAlerts() {
+  const zone = document.getElementById('alert-zone');
+  zone.innerHTML = '';
+  const faults = MACHINES.filter(id => machineState[id].status === 'fault');
+  const idles = MACHINES.filter(id => machineState[id].status === 'idle');
+  if (faults.length) zone.innerHTML += `<div class="alert alert-red"><i class="ti ti-alert-circle"></i><span>${faults.join('、')} 發生故障，請確認已完成通報登記。</span></div>`;
+  if (idles.length)  zone.innerHTML += `<div class="alert alert-amber"><i class="ti ti-info-circle"></i><span>${idles.join('、')} 目前閒置，請確認排程安排。</span></div>`;
+}
+
+function validate() {
+  const temp = document.getElementById('env-temp').value.trim();
+  const hum  = document.getElementById('env-hum').value.trim();
+  const op   = document.getElementById('operator').value.trim();
+  if (!temp)    { showToast('請填寫無塵室溫度', true); return false; }
+  if (!hum)     { showToast('請填寫無塵室濕度', true); return false; }
+  if (!op)      { showToast('請填寫填報人姓名', true); return false; }
+  for (const id of MACHINES) {
+    if (machineState[id].status === 'fault' && !machineState[id].reported) {
+      showToast(`${id} 故障，請選擇是否已通報`, true); return false;
+    }
+  }
+  return true;
+}
+
+async function submitForm() {
+  if (!validate()) return;
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 送出中…';
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('zh-TW', { year:'numeric', month:'2-digit', day:'2-digit' });
+
+  const payload = {
+    timestamp:   now.toISOString(),
+    date:        dateStr,
+    shift:       currentShift,
+    operator:    document.getElementById('operator').value.trim(),
+    reportTime:  document.getElementById('report-time').value,
+    envTemp:     document.getElementById('env-temp').value,
+    envHum:      document.getElementById('env-hum').value,
+    generalNote: document.getElementById('general-note').value.trim(),
+    machines:    MACHINES.map(id => ({
+      id,
+      status:      machineState[id].status,
+      note:        machineState[id].note || '',
+      reported:    machineState[id].reported || '',
+      repairTime:  machineState[id].repairTime || '',
+      assignee:    machineState[id].assignee || '',
+      faultDesc:   machineState[id].faultDesc || '',
+    }))
+  };
+
+  if (GAS_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
+    // Demo mode — log to console
+    console.log('[Demo] Payload:', JSON.stringify(payload, null, 2));
+    await new Promise(r => setTimeout(r, 800));
+    showSuccess(payload);
+    return;
+  }
+
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    showSuccess(payload);
+  } catch (e) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-send"></i> 送出交接班紀錄';
+    showToast('送出失敗，請檢查網路或 GAS 網址', true);
+  }
+}
+
+function showSuccess(payload) {
+  document.getElementById('form-area').style.display = 'none';
+  const sa = document.getElementById('success-area');
+  sa.classList.add('show');
+  document.getElementById('success-detail').textContent =
+    `${payload.date} ${payload.shift}｜填報人：${payload.operator}｜${payload.reportTime} 已寫入 Google Sheets`;
+}
+
+function resetForm() {
+  MACHINES.forEach(id => { machineState[id] = { status:'run', reported:'', repairTime:'', assignee:'', faultDesc:'' }; });
+  document.getElementById('env-temp').value = '';
+  document.getElementById('env-hum').value  = '';
+  document.getElementById('operator').value  = '';
+  document.getElementById('general-note').value = '';
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-send"></i> 送出交接班紀錄';
+  document.getElementById('success-area').classList.remove('show');
+  document.getElementById('form-area').style.display = 'block';
+  currentShift = '早班';
+  document.querySelectorAll('.shift-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+  const t = new Date();
+  document.getElementById('report-time').value = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
+  renderMachines();
+}
+
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = (isError ? '⚠ ' : '✓ ') + msg;
+  t.className = 'toast' + (isError ? ' error' : '') + ' show';
+  setTimeout(() => { t.className = 'toast' + (isError ? ' error' : ''); }, 3000);
+}
+
+renderMachines();
+</script>
+</body>
+</html>
